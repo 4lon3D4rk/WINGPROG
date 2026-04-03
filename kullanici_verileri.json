@@ -1,0 +1,27 @@
+{
+    "admin": {
+        "toplam_xp": 645,
+        "gunluk_gorevler": [
+            {
+                "gorev": "⚛️ Fizik: 20 dk tekrar yap (20XP) ve 20 soru çöz (Zor Seviye: 8x20)",
+                "xp": 180
+            },
+            {
+                "gorev": "📜 Tarih: Güncel üniteden 30 dakika konu anlatımı izle",
+                "xp": 30
+            },
+            {
+                "gorev": "🕋 Din Kültürü: 15 dakika ünite özeti oku",
+                "xp": 15
+            },
+            {
+                "gorev": "📚 30 dakika boyunca kitap oku",
+                "xp": 30
+            },
+            {
+                "gorev": "🏀 10dk Spor",
+                "xp": 10
+            }
+        ]
+    }
+}
