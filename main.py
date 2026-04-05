@@ -250,8 +250,8 @@ else:
 
     # --- 150 XP OR MYSTERY GIFT ---
     st.markdown("---")
-    st.subheader("🤔 Zor Karar: 150 XP mi, Gizemli Kutu mu?")
-    st.write("Tebrikler! Özel bir seçim hakkı kazandın. Garanti 150 XP'yi alıp gidebilirsin veya şansını gizemli kutuda deneyebilirsin!")
+    st.subheader("🤔 Zor Karar: 40 XP mi, Gizemli Kutu mu?")
+    st.write("Tebrikler! Özel bir seçim hakkı kazandın. Garanti 40 XP'yi alıp gidebilirsin veya şansını gizemli kutuda deneyebilirsin!")
 
     # Durum takibi için session_state
     if "secim_yapildi" not in st.session_state:
@@ -266,7 +266,7 @@ else:
                 st.session_state.toplam_xp += 40
                 st.session_state.secim_yapildi = True
                 kullanici_kaydet()
-                st.success("Cüzdana 150 XP eklendi!")
+                st.success("Cüzdana 40 XP eklendi!")
                 st.rerun()
 
         with col2:
@@ -300,9 +300,6 @@ else:
                 st.rerun()
     else:
         st.write("✨ Bugünkü seçimini yaptın. Yarın yeni bir fırsat için tekrar gel!")
-        if st.button("Seçimi Sıfırla (Test Modu)"): # Geliştirirken kolaylık olsun diye
-            st.session_state.secim_yapildi = False
-            st.rerun()
 
     # 3. Görevleri Görüntüleme ve Bonus Sistemi
     if st.session_state.gunluk_gorevler:
