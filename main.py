@@ -2,6 +2,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import random
 import json
+from datetime import datetime, timedelta
 import os
 import time
 
@@ -25,12 +26,14 @@ def verileri_kaydet(veriler):
         json.dump(veriler, f, ensure_ascii=False, indent=4)
 
 def kullanici_kaydet():
-    # Mevcut session state verilerini JSON'a yazar
     kullanici = st.session_state.aktif_kullanici
     veriler = verileri_oku()
     veriler[kullanici] = {
         "toplam_xp": st.session_state.toplam_xp,
-        "gunluk_gorevler": st.session_state.gunluk_gorevler
+        "gunluk_gorevler": st.session_state.gunluk_gorevler,
+        # Yeni eklenenler:
+        "son_olusturma_zamani": st.session_state.son_olusturma_zamani,
+        "bonus_alindi": st.session_state.bonus_alindi
     }
     verileri_kaydet(veriler)
 
@@ -100,15 +103,20 @@ if "aktif_kullanici" not in st.session_state:
             
             # Veritabanını kontrol et
             veriler = verileri_oku()
+            # Giriş sistemi içinde verileri yüklediğin kısım
             if st.session_state.aktif_kullanici in veriler:
-                # Eski kullanıcı, verileri yükle
                 kullanici_verisi = veriler[st.session_state.aktif_kullanici]
                 st.session_state.toplam_xp = kullanici_verisi.get("toplam_xp", 0)
                 st.session_state.gunluk_gorevler = kullanici_verisi.get("gunluk_gorevler", [])
+                # Yeni eklenenler:
+                st.session_state.son_olusturma_zamani = kullanici_verisi.get("son_olusturma_zamani", None)
+                st.session_state.bonus_alindi = kullanici_verisi.get("bonus_alindi", False)
             else:
-                # Yeni kullanıcı, sıfırdan başlat
+                # Yeni kullanıcı için varsayılanlar
                 st.session_state.toplam_xp = 0
                 st.session_state.gunluk_gorevler = []
+                st.session_state.son_olusturma_zamani = None
+                st.session_state.bonus_alindi = False
                 kullanici_kaydet()
             
             st.rerun()
@@ -175,13 +183,13 @@ else:
                 st.sidebar.error("Yetersiz XP!")
 
     # Ana Sayfa
+    # Ana Sayfa
     st.title("WINGPROG v1.0")
 
     @st.dialog("Onay Gerekiyor")
     def onayi_goster():
         st.write("Yeni bir program oluşturulacak. Mevcut görevlerin silinebilir. Emin misin?")
         
-        # Kullanıcı "Evet" butonuna basarsa işlemler burada gerçekleşir
         if st.button("Evet, Devam Et"):
             st.session_state.gunluk_gorevler = [
                 random.choice(ana_dersler),
@@ -190,21 +198,116 @@ else:
                 random.choice(kitap_okuma),
                 random.choice(spor)
             ]
-            kullanici_kaydet() # Yeni görevleri JSON'a kaydet
+            # BURASI ÖNEMLİ: Yeni zamanı kaydet ve bonusu sıfırla
+            st.session_state.son_olusturma_zamani = datetime.now().isoformat()
+            st.session_state.bonus_alindi = False
+            
+            kullanici_kaydet() # Yeni verileri JSON'a kaydet
             st.success("Yeni program oluşturuldu!")
-            st.rerun() # Diyaloğu kapatıp ana sayfayı güncellemek için şart
+            st.rerun() 
 
-    # 2. Ana Buton
-    if st.button("Yeni Program Oluştur"):
-        onayi_goster()
+    # 24 Saat Kontrolü
+    simdi = datetime.now()
+    bugun_17 = simdi.replace(hour=17, minute=0, second=0, microsecond=0)
 
-    # 3. Görevleri Görüntüleme (Burası diyalog dışında, ana ekranda kalmalı)
+    # Eğer şu an saat 17.00'den önceyse, "en son reset saati" dünkü 17.00'dir.
+    # Eğer şu an saat 17.00'den sonraysa, "en son reset saati" bugünkü 17.00'dir.
+    if simdi < bugun_17:
+        son_reset_zamani = bugun_17 - timedelta(days=1)
+    else:
+        son_reset_zamani = bugun_17
+
+    yeni_program_hakki = True
+    kalan_sure_mesaji = ""
+
+    if st.session_state.son_olusturma_zamani:
+        son_zaman = datetime.fromisoformat(st.session_state.son_olusturma_zamani)
+        
+        # Eğer kullanıcı en son programını son reset saatinden sonra oluşturduysa, 
+        # yani bugün hakkını kullandıysa:
+        if son_zaman > son_reset_zamani:
+            yeni_program_hakki = False
+            
+            # Bir sonraki reset saati (bugün 17:00 geçtiyse yarın 17:00, geçmediyse bugün 17:00)
+            if simdi < bugun_17:
+                hedef_zaman = bugun_17
+            else:
+                hedef_zaman = bugun_17 + timedelta(days=1)
+            
+            fark = hedef_zaman - simdi
+            # Saniyeleri saate ve KALAN saniyelere ayırıyoruz
+            saat, kalan_saniye = divmod(fark.seconds, 3600)
+            # Kalan saniyeleri dakikaya çeviriyoruz
+            dakika = kalan_saniye // 60
+            kalan_sure_mesaji = f"{saat} saat {dakika} dakika"
+
+    # --- Buton ve Uyarı Görüntüleme ---
+    if yeni_program_hakki:
+        if st.button("🚀 Günlük Programı Oluştur"):
+            onayi_goster()
+    else:
+        st.warning(f"Bugünkü hakkını kullandın. Yeni program için {kalan_sure_mesaji} sonra (saat 17.00'de) gelmelisin.")
+
+    # --- 150 XP OR MYSTERY GIFT ---
+    st.markdown("---")
+    st.subheader("🤔 Zor Karar: 150 XP mi, Gizemli Kutu mu?")
+    st.write("Tebrikler! Özel bir seçim hakkı kazandın. Garanti 150 XP'yi alıp gidebilirsin veya şansını gizemli kutuda deneyebilirsin!")
+
+    # Durum takibi için session_state
+    if "secim_yapildi" not in st.session_state:
+        st.session_state.secim_yapildi = False
+
+    if not st.session_state.secim_yapildi:
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info("### 💰 40 XP")
+            st.write("Risk yok, garanti kazanç!")
+            if st.button("Garanti XP'yi Al"):
+                st.session_state.toplam_xp += 40
+                st.session_state.secim_yapildi = True
+                kullanici_kaydet()
+                st.success("Cüzdana 150 XP eklendi!")
+                st.rerun()
+
+        with col2:
+            st.warning("### 🎁 Gizemli Kutu")
+            st.write("İçinde 500 XP de olabilir, -50 XP de!")
+            if st.button("Şansımı Deneyeceğim!"):
+                kutu_havuzu = [
+                    {"ad": "💎 EFSANEVİ: 500 XP!", "deger": 500, "ihtimal": 10},
+                    {"ad": "🎉 Harika: 200 XP!", "deger": 200, "ihtimal": 30},
+                    {"ad": "😐 Eh İşte: 50 XP!", "deger": 50, "ihtimal": 30},
+                    {"ad": "💀 Eyvah: -75 XP!", "deger": -750, "ihtimal": 20},
+                    {"ad": "🌈 ŞAKA GİBİ: 1 XP!", "deger": 1, "ihtimal": 10}
+                ]
+                
+                secenekler = [o["ad"] for o in kutu_havuzu]
+                agirliklar = [o["ihtimal"] for o in kutu_havuzu]
+                kazanan = random.choices(secenekler, weights=agirliklar, k=1)[0]
+                secilen_odul = next(o for o in kutu_havuzu if o["ad"] == kazanan)
+                
+                st.session_state.toplam_xp += secilen_odul["deger"]
+                st.session_state.secim_yapildi = True
+                kullanici_kaydet()
+                
+                # Sonucu göster
+                if secilen_odul["deger"] >= 200:
+                    st.balloons()
+                    st.success(f"İNANILMAZ! {secilen_odul['ad']}")
+                else:
+                    st.error(f"Kutudan bu çıktı: {secilen_odul['ad']}")
+                
+                st.rerun()
+    else:
+        st.write("✨ Bugünkü seçimini yaptın. Yarın yeni bir fırsat için tekrar gel!")
+        if st.button("Seçimi Sıfırla (Test Modu)"): # Geliştirirken kolaylık olsun diye
+            st.session_state.secim_yapildi = False
+            st.rerun()
+
+    # 3. Görevleri Görüntüleme ve Bonus Sistemi
     if st.session_state.gunluk_gorevler:
         st.subheader("Günün Görevleri")
         
-        # Döngü içinde pop işlemi yaparken liste sırası bozulmaması için 
-        # reversed (sondan başa) veya farklı bir yöntem kullanmak daha güvenlidir,
-        # ama senin mantığında her seferinde st.rerun() olduğu için bu şekilde de çalışır.
         for i, gorev_verisi in enumerate(st.session_state.gunluk_gorevler):
             c1, c2 = st.columns([3, 1])
             c1.write(f"{i+1}- {gorev_verisi['gorev']} (+{gorev_verisi['xp']} XP)")
@@ -214,5 +317,19 @@ else:
                 st.session_state.gunluk_gorevler.pop(i)
                 kullanici_kaydet() 
                 st.rerun()
+                
+    elif st.session_state.son_olusturma_zamani:
+        if not st.session_state.bonus_alindi:
+            st.success("Tebrikler! Günlük tüm görevleri tamamladın.")
+            if st.button("🎁 150 XP Günlük Bonusu Al"):
+                st.session_state.toplam_xp += 150
+                st.session_state.bonus_alindi = True
+                kullanici_kaydet()
+                st.balloons()
+                st.rerun()
+        else:
+            st.info("Bugünkü görevlerini tamamladın ve bonusunu aldın! Yeni program için beklemen gerekiyor.")
+            st.caption("made by: qwertz.1.")
+
     else:
         st.info("Henüz bir program oluşturulmadı. Yukarıdaki butona basarak başlayabilirsin.")

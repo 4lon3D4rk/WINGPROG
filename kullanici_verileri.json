@@ -1,27 +1,29 @@
 {
     "admin": {
-        "toplam_xp": 645,
+        "toplam_xp": 99999,
         "gunluk_gorevler": [
             {
-                "gorev": "⚛️ Fizik: 20 dk tekrar yap (20XP) ve 20 soru çöz (Zor Seviye: 8x20)",
-                "xp": 180
+                "gorev": "📐 Matematik: Üçgenler yeni nesil 30 soru çöz (Zor Seviye)",
+                "xp": 240
             },
             {
-                "gorev": "📜 Tarih: Güncel üniteden 30 dakika konu anlatımı izle",
-                "xp": 30
+                "gorev": "📜 Tarih: İlk Türk İslam Devletleri belgeseli/detaylı videosu izle (45 dk)",
+                "xp": 45
             },
             {
-                "gorev": "🕋 Din Kültürü: 15 dakika ünite özeti oku",
-                "xp": 15
+                "gorev": "🇩🇪 Almanca: 30 dakika kelime tekrarı yap",
+                "xp": 35
             },
             {
                 "gorev": "📚 30 dakika boyunca kitap oku",
                 "xp": 30
             },
             {
-                "gorev": "🏀 10dk Spor",
-                "xp": 10
+                "gorev": "🏀 30dk Spor",
+                "xp": 30
             }
-        ]
+        ],
+        "son_olusturma_zamani": "2026-04-05T23:32:55.558031",
+        "bonus_alindi": false
     }
 }
